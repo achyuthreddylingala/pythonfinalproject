@@ -1,0 +1,643 @@
+'''Final Project - Python
+   Submitted by: Achyuth Reddy(2393979), Ritika(2394620)
+   In this project we have designed a Library Managmant System
+   using SQLite and Object-Oriented Programming.'''
+import sqlite3
+from datetime import datetime, timedelta
+
+# Define a common user class with basic attributes
+class CommonUser:
+    def __init__(self, username, password, name, contactInfo):
+        self.username = username
+        self.password = password
+        self.name = name
+        self.contactInfo = contactInfo
+
+# Librarian class inherits from CommonUser
+class Librarian(CommonUser):
+    def __init__(self, username, password, name, contactInfo):
+        super().__init__(username, password, name, contactInfo)
+
+# User class inherits from CommonUser
+class User(CommonUser):
+    def __init__(self, username, password, name, contactInfo):
+        super().__init__(username, password, name, contactInfo)
+
+# Publisher class with basic attributes
+class Publisher:
+    def __init__(self, publishername, address, contactdetails):
+        self.publishername = publishername
+        self.address = address
+        self.contactdetails = contactdetails
+
+# Book class with basic attributes
+class Book:
+    def __init__(self, title, author, genre, ISBN, quantity, publicationYear):
+        self.title = title
+        self.author = author
+        self.genre = genre
+        self.ISBN = ISBN
+        self.quantity = quantity
+        self.publicationYear = publicationYear
+
+# Transaction class with attributes for tracking book transactions
+class Transaction:
+    def __init__(self, username, bookISBN, duedate, duestatus):
+        self.username = username
+        self.bookISBN = bookISBN
+        self.duedate = duedate
+        self.duestatus = duestatus
+
+# CommonUserManagement class for managing common users
+class CommonUserManagement(CommonUser):
+    def __init__(self):
+        self.storage = []
+
+    # Method to add a user to the storage
+    def add_user(self, username, password, name, contactInfo):
+        self.storage.append({"Username is ": username, "password ": password, "name ": name, "contactInfo is": contactInfo})
+
+    # Method to delete a user from the storage
+    def delete_user(self, username):
+        for user in self.storage:
+            if user["Username is "] == username:
+                self.storage.remove(user)
+                print(f"User '{username}' deleted successfully.")
+                return
+        print(f"User '{username}' not found.")
+
+# PublisherManagement class for managing publishers
+class PublisherManagement(Publisher):
+    def __init__(self):
+        self.publishstorage = []
+
+    # Method to add a publisher to the storage
+    def add_publisher(self, publishername, address, contactdetails):
+        self.publishstorage.append({"publishername": publishername, "address": address, "contactdetails": contactdetails})
+        print(f"Publisher '{publishername}' added successfully.")
+
+    # Method to delete a publisher from the storage
+    def delete_publisher(self, publishername):
+        for publisher in self.publishstorage:
+            if publisher["publishername"] == publishername:
+                self.publishstorage.remove(publisher)
+                print(f"Publisher '{publishername}' deleted successfully.")
+                return
+        print(f"Publisher '{publishername}' not found.")
+
+# BookManagement class for managing books
+class BookManagement(Book):
+    def __init__(self):
+        self.bookstorage = []
+
+    # Method to add a book to the storage
+    def add_book(self, title, author, genre, ISBN, quantity, publicationYear):
+        # Append the book details as a dictionary to the book storage list
+        self.bookstorage.append({
+            "title": title,
+            "author": author,
+            "genre": genre,
+            "ISBN": ISBN,
+            "quantity": quantity,
+            "publicationYear": publicationYear  # Fixed the variable name
+        })
+        print(f"Book '{title}' added successfully.")
+
+# Database class for interacting with SQLite database
+class Database:
+    def __init__(self, db_file='Library.db'):
+        self.conn = sqlite3.connect(db_file)
+        self.cursor = self.conn.cursor()
+        self.create_tables()
+
+    # Method to create necessary tables in the database
+    def create_tables(self):
+        try:
+            self.cursor.execute(''' 
+                CREATE TABLE IF NOT EXISTS Librarian ( 
+                    username TEXT PRIMARY KEY NOT NULL, 
+                    password TEXT,
+                    name TEXT,
+                    contactInfo TEXT
+                );      
+            ''')
+
+            self.cursor.execute('''
+                CREATE TABLE IF NOT EXISTS Publisher(
+                    publishername TEXT PRIMARY KEY NOT NULL, 
+                    address TEXT,
+                    contactdetails TEXT
+                );              
+            ''')
+
+            self.cursor.execute('''
+                CREATE TABLE IF NOT EXISTS User (
+                    username TEXT PRIMARY KEY NOT NULL, 
+                    password TEXT,
+                    name TEXT,
+                    contactInfo TEXT
+                );      
+            ''')
+
+            self.cursor.execute('''
+                CREATE TABLE IF NOT EXISTS Books(
+                    title TEXT,
+                    author TEXT,
+                    genre TEXT,
+                    ISBN INTEGER PRIMARY KEY NOT NULL,
+                    quantity INTEGER,
+                    publicationYear INTEGER
+                );
+            ''')
+
+            self.cursor.execute('''
+                CREATE TABLE IF NOT EXISTS Transactions(
+                    username TEXT,
+                    bookISBN INTEGER,
+                    duedate DATE,
+                    duestatus TEXT NOT NULL,
+                    FOREIGN KEY (username) REFERENCES User (username),
+                    FOREIGN KEY (bookISBN) REFERENCES Books(ISBN)
+                );
+            ''')
+
+            self.conn.commit()
+            print("Database tables created successfully.")
+        except sqlite3.Error as e:
+            print(f"Error creating tables: {e}")
+            self.conn.rollback()
+    
+    # Methods for CRUD operations on librarian, publisher, user, book, and transactions
+    def insert_librarian(self, librarian):
+        try:
+            self.cursor.execute(
+                "INSERT INTO Librarian (username, password, name, contactInfo) VALUES (?, ?, ?, ?)",
+                (librarian.username, librarian.password, librarian.name, librarian.contactInfo)
+            )
+            self.conn.commit()
+            print("Librarian added successfully!")
+        except sqlite3.Error as e:
+            print(f"Error inserting librarian: {e}")
+            self.conn.rollback()
+
+    def update_librarian(self, username, password, name, contactInfo):
+        try:
+            self.cursor.execute(
+                "UPDATE Librarian SET password=?, name=?, contactInfo=? WHERE username=?",
+                (password, name, contactInfo, username)
+            )
+            self.conn.commit()
+            print("Librarian updated successfully!")
+        except sqlite3.Error as e:
+            print(f"Error updating librarian: {e}")
+            self.conn.rollback()
+
+    def delete_librarian(self, username):
+        try:
+            self.cursor.execute("DELETE FROM Librarian WHERE username=?", (username,))
+            self.conn.commit()
+            print("Librarian deleted successfully!")
+        except sqlite3.Error as e:
+            print(f"Error deleting librarian: {e}")
+            self.conn.rollback()
+
+    def insert_publisher(self, publisher):
+        try:
+            self.cursor.execute(
+                "INSERT INTO Publisher (publishername, address, contactdetails) VALUES (?, ?, ?)",
+                (publisher.publishername, publisher.address, publisher.contactdetails)
+            )
+            self.conn.commit()
+            print("Publisher added successfully!")
+        except sqlite3.Error as e:
+            print(f"Error inserting publisher: {e}")
+            self.conn.rollback()
+
+    def update_publisher(self, publishername, address, contactdetails):
+        try:
+            self.cursor.execute(
+                "UPDATE Publisher SET address=?, contactdetails=? WHERE publishername=?",
+                (address, contactdetails, publishername)
+            )
+            self.conn.commit()
+            print("Publisher updated successfully!")
+        except sqlite3.Error as e:
+            print(f"Error updating publisher: {e}")
+            self.conn.rollback()
+
+    def delete_publisher(self, publishername):
+        try:
+            self.cursor.execute("DELETE FROM Publisher WHERE publishername=?", (publishername,))
+            self.conn.commit()
+            print("Publisher deleted successfully!")
+        except sqlite3.Error as e:
+            print(f"Error deleting publisher: {e}")
+            self.conn.rollback()
+
+    def insert_user(self, user):
+        try:
+            self.cursor.execute(
+                "INSERT INTO User (username, password, name, contactInfo) VALUES (?, ?, ?, ?)",
+                (user.username, user.password, user.name, user.contactInfo)
+            )
+            self.conn.commit()
+            print("User added successfully!")
+        except sqlite3.Error as e:
+            print(f"Error inserting user: {e}")
+            self.conn.rollback()
+
+    def update_user(self, username, password, name, contactInfo):
+        try:
+            self.cursor.execute(
+                "UPDATE User SET password=?, name=?, contactInfo=? WHERE username=?",
+                (password, name, contactInfo, username)
+            )
+            self.conn.commit()
+            print("User updated successfully!")
+        except sqlite3.Error as e:
+            print(f"Error updating user: {e}")
+            self.conn.rollback()
+
+    def delete_user(self, username):
+        try:
+            self.cursor.execute("DELETE FROM User WHERE username=?", (username,))
+            self.conn.commit()
+            print("User deleted successfully!")
+        except sqlite3.Error as e:
+            print(f"Error deleting user: {e}")
+            self.conn.rollback()
+
+    def insert_book(self, book):
+        try:
+            self.cursor.execute(
+                "INSERT INTO Books (ISBN, title, author, genre, quantity, publicationYear) VALUES (?, ?, ?, ?, ?, ?)",
+                (book.ISBN, book.title, book.author, book.genre, book.quantity, book.publicationYear)
+            )
+            self.conn.commit()
+            print("Book added successfully!")
+        except sqlite3.Error as e:
+            print(f"Error inserting book: {e}")
+            self.conn.rollback()
+
+    def update_book(self, ISBN, title, author, genre, quantity, publicationYear):
+        try:
+            self.cursor.execute(
+                "UPDATE Books SET title=?, author=?, genre=?, quantity=?, publicationYear=? WHERE ISBN=?",
+                (title, author, genre, quantity, publicationYear, ISBN)
+            )
+            self.conn.commit()
+            print("Book updated successfully!")
+        except sqlite3.Error as e:
+            print(f"Error updating book: {e}")
+            self.conn.rollback()
+
+    def delete_book(self, ISBN):
+        try:
+            self.cursor.execute("DELETE FROM Books WHERE ISBN=?", (ISBN,))
+            self.conn.commit()
+            print("Book deleted successfully!")
+        except sqlite3.Error as e:
+            print(f"Error deleting book: {e}")
+            self.conn.rollback()
+
+    def search_books(self, keyword):
+        try:
+            self.cursor.execute("SELECT * FROM Books WHERE title LIKE ? OR author LIKE ? OR genre LIKE ?", ('%' + keyword + '%', '%' + keyword + '%', '%' + keyword + '%'))
+            rows = self.cursor.fetchall()
+            if not rows:
+                print("No books found matching the keyword.")
+            else:
+                print("\n--- Search Results ---")
+                for row in rows:
+                # Print information for each book found
+                    print(f"Title: {row[0]}, Author: {row[1]}, Genre: {row[2]}, ISBN: {row[3]}, Quantity: {row[4]}, Publication Year: {row[5]}")
+        except sqlite3.Error as e:
+            print(f"Error searching books: {e}")
+
+    def check_out_book(self, book_isbn):
+        try:
+            self.cursor.execute("SELECT quantity FROM Books WHERE isbn = ?", (book_isbn,))
+            book_quantity = self.cursor.fetchone()[0]
+
+            if book_quantity > 0:
+                self.cursor.execute("UPDATE Books SET quantity = quantity - 1 WHERE isbn = ?", (book_isbn,))
+                self.conn.commit()
+
+            # Get the user who is checking out the book
+                username = input("Enter your username: ")
+                duedate = datetime.now().date() + timedelta(days=14)  # Set the due date to 14 days from today
+                duestatus = "Pending"
+
+                self.cursor.execute("INSERT INTO Transactions (username, bookISBN, duedate, duestatus) VALUES (?, ?, ?, ?)", (username, book_isbn, duedate, duestatus))
+                self.conn.commit()
+                print("Book checked out successfully!")
+
+            else:
+                print("The requested book is currently not available.")
+        except sqlite3.Error as e:
+            print(f"Error checking out book: {e}")
+
+    def return_book(self, book_isbn):
+        try:
+            self.cursor.execute("UPDATE Books SET quantity = quantity + 1 WHERE isbn = ?", (book_isbn,))
+            self.conn.commit()
+            print("Book returned successfully!")
+        except sqlite3.Error as e:
+            print(f"Error returning book: {e}")
+
+    def get_book_by_ISBN(self, ISBN):
+        try:
+            self.cursor.execute("SELECT * FROM Books WHERE ISBN=?", (ISBN,))
+            book_data = self.cursor.fetchone()
+            if book_data:
+                # Return Book object if found
+                return Book(book_data)
+            else:
+                return None  # Return None if book not found
+        except sqlite3.Error as e:
+            print(f"Error getting book by ISBN: {e}")
+
+    def update_book_quantity(self, ISBN, quantity):
+        try:
+            self.cursor.execute("UPDATE Books SET quantity=? WHERE ISBN=?", (quantity, ISBN))
+            self.conn.commit()
+        except sqlite3.Error as e:
+            print(f"Error updating book quantity: {e}")
+
+    def view_transaction_history(self, username):
+        try:
+            self.cursor.execute("SELECT * FROM Transactions WHERE username=?", (username,))
+            rows = self.cursor.fetchall()
+            if not rows:
+                print("No transaction history found for this user.")
+            else:
+                print("\n--- Transaction History ---")
+                for row in rows:
+                    print(f"Username: {row[0]}, Book ISBN: {row[1]}, Due Date: {row[2]}, Due Status: {row[3]}")
+        except sqlite3.Error as e:
+            print(f"Error viewing transaction history: {e}")
+
+# Main program
+if __name__ == "__main__":
+    # Connect to the database and instantiate necessary classes
+    connection = sqlite3.connect('Library.db')
+    db = Database()
+    user_management = CommonUserManagement()  # Instantiate the CommonUserManagement class
+
+    while True:
+        print("\n--- Library Management System ---")
+        print("1. Admin")
+        print("2. User")
+        print("3. Exit")
+        main_choice = input("Enter your choice (1/2/3): ")
+
+        if main_choice == '1':
+            # Admin menu and functionalities
+            print("\n--- Admin Menu ---")
+            print("1. Manage Librarians")
+            print("2. Manage Publishers")
+            print("3. Manage Users")
+            print("4. Manage Books")
+            print("5. View Transaction History")
+            print("6. Return to main menu")
+            admin_choice = input("Enter your choice (1/2/3/4/5/6): ")
+
+            if admin_choice == '1':
+                # Librarian management
+                print("\n--- Librarian Management ---")
+                print("1. Add Librarian")
+                print("2. Edit Librarian")
+                print("3. Remove Librarian")
+                print("4. Return to admin menu")
+                lib_choice = input("Enter your choice (1/2/3/4): ")
+
+                if lib_choice == '1':
+                    # Code to add a librarian
+                    username = input("Enter new librarian's username: ")
+                    password = input("Enter new librarian's password: ")
+                    name = input("Enter new librarian's name: ")
+                    contact_info = input("Enter new librarian's contact info: ")
+                    new_librarian = Librarian(username, password, name, contact_info)
+                    db.insert_librarian(new_librarian)
+                    print("Librarian added successfully!")
+
+                elif lib_choice == '2':
+                    # Code to edit a librarian
+                    username = input("Enter librarian's username to edit: ")
+                    password = input("Enter new password: ")
+                    name = input("Enter new name: ")
+                    contact_info = input("Enter new contact info: ")
+                    db.update_librarian(username, password, name, contact_info)
+                    print("Librarian updated successfully!")
+
+                elif lib_choice == '3':
+                    # Code to remove a librarian
+                    username = input("Enter librarian's username to remove: ")
+                    db.delete_librarian(username)
+
+                elif lib_choice == '4':
+                    # Return to admin menu
+                    continue
+
+                else:
+                    print("Invalid choice! Please enter a valid option.")
+
+            elif admin_choice == '2':
+                # Publisher management
+                print("\n--- Publisher Management ---")
+                print("1. Add Publisher")
+                print("2. Edit Publisher")
+                print("3. Remove Publisher")
+                print("4. Return to admin menu")
+                pub_choice = input("Enter your choice (1/2/3/4): ")
+
+                if pub_choice == '1':
+                    # Code to add a publisher
+                    publishername = input("Enter publisher's name: ")
+                    address = input("Enter publisher's address: ")
+                    contact_details = input("Enter publisher's contact details: ")
+                    new_publisher = Publisher(publishername, address, contact_details)
+                    db.insert_publisher(new_publisher)
+
+                elif pub_choice == '2':
+                    # Code to edit a publisher
+                    publishername = input("Enter publisher's name to edit: ")
+                    address = input("Enter new address: ")
+                    contact_details = input("Enter new contact details: ")
+                    db.update_publisher(publishername, address, contact_details)
+
+                elif pub_choice == '3':
+                    # Code to remove a publisher
+                    publishername = input("Enter publisher's name to remove: ")
+                    db.delete_publisher(publishername)
+
+                elif pub_choice == '4':
+                    # Return to admin menu
+                    continue
+
+                else:
+                    print("Invalid choice! Please enter a valid option.")
+
+            elif admin_choice == '3':
+                # User management
+                print("\n--- User Management ---")
+                print("1. Add User")
+                print("2. Edit User")
+                print("3. Remove User")
+                print("4. Return to admin menu")
+                user_choice = input("Enter your choice (1/2/3/4): ")
+
+                if user_choice == '1':
+                    # Code to add a user
+                    username = input("Enter new user's username: ")
+                    password = input("Enter new user's password: ")
+                    name = input("Enter new user's name: ")
+                    contact_info = input("Enter new user's contact info: ")
+                    new_user = User(username, password, name, contact_info)
+                    db.insert_user(new_user)
+                    print("User added successfully!")
+
+                elif user_choice == '2':
+                    # Code to edit a user
+                    username = input("Enter user's username to edit: ")
+                    password = input("Enter new password: ")
+                    name = input("Enter new name: ")
+                    contact_info = input("Enter new contact info: ")
+                    db.update_user(username, password, name, contact_info)
+                    print("User updated successfully!")
+
+                elif user_choice == '3':
+                    # Code to remove a user
+                    username = input("Enter user's username to remove: ")
+                    db.delete_user(username)
+
+                elif user_choice == '4':
+                    # Return to admin menu
+                    continue
+
+                else:
+                    print("Invalid choice! Please enter a valid option.")
+
+            elif admin_choice == '4':
+                # Book management
+                print("\n--- Book Management ---")
+                print("1. Add Book")
+                print("2. Edit Book")
+                print("3. Remove Book")
+                print("4. Search Books")
+                print("5. Check Out Book")
+                print("6. Return Book")
+                print("7. Return to admin menu")
+                book_choice = input("Enter your choice (1/2/3/4/5/6/7): ")
+
+                if book_choice == '1':
+                    # Code to add a book
+                    title = input("Enter title: ")
+                    author = input("Enter author: ")
+                    genre = input("Enter genre: ")
+                    ISBN = int(input("Enter ISBN: "))
+                    quantity = int(input("Enter quantity: "))
+                    publication_year = int(input("Enter publication year: "))
+                    new_book = Book(title, author, genre, ISBN, quantity, publication_year)
+                    db.insert_book(new_book)
+
+                elif book_choice == '2':
+                    # Code to edit a book
+                    ISBN = int(input("Enter ISBN of book to edit: "))
+                    title = input("Enter new title: ")
+                    author = input("Enter new author: ")
+                    genre = input("Enter new genre: ")
+                    quantity = int(input("Enter new quantity: "))
+                    publication_year = int(input("Enter new publication year: "))
+                    db.update_book(ISBN, title, author, genre, quantity, publication_year)
+
+                elif book_choice == '3':
+                    # Code to remove a book
+                    ISBN = int(input("Enter ISBN of book to remove: "))
+                    db.delete_book(ISBN)
+
+                elif book_choice == '4':
+                    # Search books
+                    keyword = input("Enter title, author, or genre to search: ")
+                    db.search_books(keyword)
+
+                elif book_choice == '5':
+                    # Check out a book
+                    ISBN = int(input("Enter ISBN of book to check out: "))
+                    db.check_out_book(ISBN)
+
+                elif book_choice == '6':
+                    # Return a book
+                    ISBN = int(input("Enter ISBN of book to return: "))
+                    db.return_book(ISBN)
+
+                elif book_choice == '7':
+                    # Return to admin menu
+                    continue
+
+                else:
+                    print("Invalid choice! Please enter a valid option.")
+
+            elif admin_choice == '5':
+                # View transaction history
+                username = input("Enter username to view transaction history: ")
+                db.view_transaction_history(username)
+
+            elif admin_choice == '6':
+                # Return to main menu
+                continue
+
+            else:
+                print("Invalid choice! Please enter a valid option.")
+
+        elif main_choice == '2':
+            # User menu and functionalities
+            print("\n--- User Menu ---")
+            print("1. Search Books")
+            print("2. Check Out Book")
+            print("3. Return Book")
+            print("4. View Transaction History")
+            print("5. Return to main menu")
+            user_choice = input("Enter your choice (1/2/3/4/5): ")
+
+            if user_choice == '1':
+                # Search books
+                keyword = input("Enter title, author, or genre to search: ")
+                db.search_books(keyword)
+
+            elif user_choice == '2':
+                # Check out a book
+                ISBN = int(input("Enter ISBN of book to check out: "))
+                db.check_out_book(ISBN)
+
+            elif user_choice == '3':
+                # Return a book
+                ISBN = int(input("Enter ISBN of book to return: "))
+                db.return_book(ISBN)
+
+            elif user_choice == '4':
+                # View transaction history
+                username = input("Enter your username to view transaction history: ")
+                db.view_transaction_history(username)
+
+            elif user_choice == '5':
+                # Return to main menu
+                continue
+
+            else:
+                print("Invalid choice! Please enter a valid option.")
+
+        elif main_choice == '3':
+            # Exit the program
+            print("Exiting the Library Management System. Goodbye!")
+            break
+
+        else:
+            print("Invalid choice! Please enter a valid option.")
+
+
+
+
+
+
+
